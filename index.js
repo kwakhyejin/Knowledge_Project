@@ -36,29 +36,29 @@ const sendData = data => {
     data.cpCode = CPCODE
     data.authKey = AUTHKEY
     socketLog('send', data);
-    clientIo.emit("knowledgetalk", data);
+    clientIo.emit("knowledgetalk", data);   // 현재 연결되어 있는 클라이언트 소켓에 전달.
 }
 
 // 현재 사용하지 않는 메서드.
-const deletePeers = async () => {
-    for(let key in streams) {
-        if (streams[key] && streams[key].getTracks()) {
-            streams[key].getTracks().forEach(track => {
-                track.stop();
-            })
+// const deletePeers = async () => {
+//     for(let key in streams) {
+//         if (streams[key] && streams[key].getTracks()) {
+//             streams[key].getTracks().forEach(track => {
+//                 track.stop();
+//             })
 
-            document.getElementById(key).srcObject = null;
-            document.getElementById(key).remove();
-        }
-    }
+//             document.getElementById(key).srcObject = null;
+//             document.getElementById(key).remove();
+//         }
+//     }
 
-    for(let key in peers) {
-        if (peers[key]) {
-            peers[key].close();
-            peers[key] = null;
-        }
-    }
-}
+//     for(let key in peers) {
+//         if (peers[key]) {
+//             peers[key].close();
+//             peers[key] = null;
+//         }
+//     }
+// }
 
 //영상 출력 화면 Box 생성
 // let은 변수에 재할당이 가능하지만 const는 변수재선언,재할당 모두 불가능
@@ -104,10 +104,12 @@ const createSDPOffer = async id => {
 
 // send SDP answer
 // SDP :  SDP란 Session Description Protocol 의 약자로 연결하고자 하는 Peer 서로간의 미디어와 네트워크에 관한 정보를 이해하기 위해 사용
+// Promise 객체는 자바스크립트 비동기 처리를 위한 객체
+// async...await : 비동기처리패턴 HTTP 통신을 하는 비동기 처리 코드 앞에 await을 붙인다.(비동기처리메서드는 꼭 프로미스객체를 반환해야함.)
 const createSDPAnswer = async data => {
     let displayId = data.displayId;
 
-    peers[displayId] = new RTCPeerConnection();
+    peers[displayId] = new RTCPeerConnection(); // 로컬기기와 원격 피어간의 WebRTC 연결을 담당, 원격 피어에 연결하기 위한 메서드 제공
     peers[displayId].ontrack = e => {
         streams[displayId] = e.streams[0];
 
@@ -129,12 +131,12 @@ const createSDPAnswer = async data => {
                 "userId": userId
             };
 
-            sendData(reqData);
+            sendData(reqData);  // 데이터 전송
         }
     }
 }
 
-//퇴장 시, stream,peer 제거
+//퇴장 시, stream,peer 제거해주는 메서드
 const leaveParticipant = id => {
     document.getElementById(`multiVideo-${id}`).remove();
     document.getElementById(id).remove();
@@ -158,7 +160,7 @@ const leaveParticipant = id => {
 CreateRoomBtn.addEventListener('click', () => { //createRoom클릭시 발생하는 이벤트
     host = true;
     let data = {
-        "eventOp":"CreateRoom"
+        "eventOp":"CreateRoom"  // Call 이벤트 처리 명령어
     }
 
     sendData(data);
@@ -167,7 +169,7 @@ CreateRoomBtn.addEventListener('click', () => { //createRoom클릭시 발생하�
 RoomJoinBtn.addEventListener('click', () => {   // RoomJoin 클릭시 발생하는 이벤트
     let data = {
         "eventOp":"RoomJoin",
-        "roomId": roomIdInput.value
+        "roomId": roomIdInput.value     // 방의 value도 전달
     }
 
     sendData(data);
@@ -218,9 +220,9 @@ clientIo.on("knowledgetalk", async data => {
             break;
 
         case 'SDP':
-            if(data.useMediaSvr == 'Y'){
-                if(data.sdp && data.sdp.type == 'offer'){
-                    createSDPAnswer(data);
+            if(data.useMediaSvr == 'Y'){    // useMediaSvr == Y 다중화상통화
+                if(data.sdp && data.sdp.type == 'offer'){   // 자기 자신
+                    createSDPAnswer(data);  //내 화면 생성
                 }
                 else if(data.sdp && data.sdp.type == 'answer'){
                     peers[userId].setRemoteDescription(new RTCSessionDescription(data.sdp));
@@ -258,7 +260,7 @@ const roomJoin = data => {
 }
 
 const startSession = async data => {
-    members = Object.keys(data.members);
+    members = Object.keys(data.members);    //Object.keys() : members 이름들을 반복문과 동일한 순서로 순회해서 배열로 반환
 
     //3명 이상일 때, 다자간 통화 연결 시작
     if(data.useMediaSvr == 'Y'){
@@ -267,6 +269,7 @@ const startSession = async data => {
             if(!user){
                 createVideoBox(members[i]);
             }
+            
         }
 
         SDPBtn.disabled = false;
@@ -286,4 +289,4 @@ const receiveFeed = (data) => {
 
         sendData(data);
     })
-}
+} 
