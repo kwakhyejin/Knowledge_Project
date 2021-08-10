@@ -1,10 +1,9 @@
-
-// socket 연결하기
+//socket 연결
 const clientIo = io.connect("https://dev.knowledgetalk.co.kr:7100/SignalServer",{});
 
 const roomIdInput = document.getElementById("roomIdInput");
 const videoBox = document.getElementById("videoBox");
-const printBox = document.getElementById("printBox");
+const printBox = document.getElementById("printBox")
 
 const CreateRoomBtn = document.getElementById("CreateRoomBtn");
 const RoomJoinBtn = document.getElementById("RoomJoinBtn");
@@ -18,10 +17,12 @@ let roomId;
 let userId;
 let host;
 
-let peers =  {};
+let peers = {};
 let streams = {};
 
-// 로그 출력
+/********************** 기타 method **********************/
+
+// 하단 로그 출력하는 메서드
 const socketLog = (type, contents) => {
     let jsonContents = JSON.stringify(contents);
     const textLine = document.createElement("p");
@@ -30,69 +31,69 @@ const socketLog = (type, contents) => {
     printBox.appendChild(textLine);
 }
 
-
+//send message to signaling server
 const sendData = data => {
     data.cpCode = CPCODE
     data.authKey = AUTHKEY
-    socketLog('send', data);    // cocode, authkey 보내기
-    Vue.emit("knowlegetalk", data);
+    socketLog('send', data);
+    clientIo.emit("knowledgetalk", data);
 }
 
-// 현재 사용중인 메서드인지 여부 확인
-const deletePeers = async() => {
+// 현재 사용하지 않는 메서드.
+const deletePeers = async () => {
     for(let key in streams) {
-        if(streams[key] && streams[key].getTrack()){
-            streams[key].getTrack().forEach(track => {
+        if (streams[key] && streams[key].getTracks()) {
+            streams[key].getTracks().forEach(track => {
                 track.stop();
             })
-            
-            document.getElementById(key).srcObjcect = null; ///
+
+            document.getElementById(key).srcObject = null;
             document.getElementById(key).remove();
         }
     }
+
     for(let key in peers) {
-        if(peers[key]){
+        if (peers[key]) {
             peers[key].close();
             peers[key] = null;
         }
     }
-
 }
+
+//영상 출력 화면 Box 생성
 // let은 변수에 재할당이 가능하지만 const는 변수재선언,재할당 모두 불가능
-// 영상 출력 박스 생성 메서드
 const createVideoBox = id => {
-    let videoContainer = document.createElement("div");
-    videoContainer.classList = "multi-video";
-    videoContainer.id = id;
+    let videoContainner = document.createElement("div");
+    videoContainner.classList = "multi-video";
+    videoContainner.id = id;
 
-    let videoLable = document.createElement("p");   
-    let videoLableText = document.createTextNode(id); // div안에 id생성
-    videoLable.appendChild(videoLableText);
+    let videoLabel = document.createElement("p");
+    let videoLabelText = document.createTextNode(id);
+    videoLabel.appendChild(videoLabelText);
 
-    videoContainer.appendChild(videoLabel);
+    videoContainner.appendChild(videoLabel);
 
     let multiVideo = document.createElement("video");
-    multiVideo.autoplay = true; // 영상 자동 재생
+    multiVideo.autoplay = true;
     multiVideo.id = "multiVideo-" + id;
-    videoContainer.appendChild(multiVideo);
+    videoContainner.appendChild(multiVideo);
 
-    videoBox.appendChild(videoContainer);
+    videoBox.appendChild(videoContainner);
 }
 
 // Local stream, peer 생성 및 SDP RETURN
 const createSDPOffer = async id => {
     return new Promise(async (resolve, reject) => { // Promise객체는 비동기작업후에 완료 or 실패와 그 결과값을 나타냄.
         peers[id] = new RTCPeerConnection();
-        streams[id] = await navigator.mediaDevices.getUserMedia({video: true, audio: true});    // 오디오 비디오 둘다 요청
-        // 보통, MediaDevices 싱글톤 객체는 다음과 같이 navigator.mediaDevices를 사용해 접근합니다.
+        streams[id] = await navigator.mediaDevices.getUserMedia({video: true, audio: true});  // 오디오 비디오 둘다 요청
         let str = 'multiVideo-'+id;
         let multiVideo = document.getElementById(str);
-        multiVideo.srcObjcect = streams[id];    // 비디오요소에서 srcObeject 속성을 사용해 스트림을 가져옴
+        multiVideo.srcObject = streams[id]; // 비디오요소에서 srcObeject 속성을 사용해 스트림을 가져옴
         streams[id].getTracks().forEach(track => {  // getTracks()를 사용해서 스트림의 트랙 목록을 가져오고  forEach를 이용하여 addTrack한다.
             peers[id].addTrack(track, streams[id]);
         });
 
-        peers[id].createOffer.then(sdp => { // createOffer를 통해 수신자에게 전달할 SDP를 생성한다.
+        peers[id].createOffer().then(sdp => {   // createOffer를 통해 수신자에게 전달할 SDP를 생성한다.
             peers[id].setLocalDescription(sdp); //연결 인터페이스와 관련이 있는 로컬 설명 (local description)을 변경.로컬 설명은 미디어 형식을 포함하는 연결의 로컬 엔드에 대한 속성을 명시
             return sdp;
         }).then(sdp => {
@@ -111,7 +112,7 @@ const createSDPAnswer = async data => {
         streams[displayId] = e.streams[0];
 
         let multiVideo = document.getElementById(`multiVideo-${displayId}`);
-        multiVideo.srcObjcect = streams[displayId];    
+        multiVideo.srcObject = streams[displayId];
     }
 
     await peers[displayId].setRemoteDescription(data.sdp);
@@ -120,13 +121,14 @@ const createSDPAnswer = async data => {
     peers[displayId].onicecandidate = e => {
         if(!e.candidate){
             let reqData = {
-                "eventOp" : "SDP",
-                "sdp" : peers[displayId].LocalDescription,
-                "roomId" : data.roomId,
-                "usage" : "cam",
-                "pluginId" : data.pluginId,
-                "userId" : userId
+                "eventOp": "SDP",
+                "sdp": peers[displayId].localDescription,
+                "roomId": data.roomId,
+                "usage": "cam",
+                "pluginId": data.pluginId,
+                "userId": userId
             };
+
             sendData(reqData);
         }
     }
@@ -153,7 +155,7 @@ const leaveParticipant = id => {
 }
 
 /********************** button event **********************/
-CreateRoomBtn.addEventListener('click', () => {
+CreateRoomBtn.addEventListener('click', () => { //createRoom클릭시 발생하는 이벤트
     host = true;
     let data = {
         "eventOp":"CreateRoom"
@@ -162,7 +164,16 @@ CreateRoomBtn.addEventListener('click', () => {
     sendData(data);
 });
 
-SDPBtn.addEventListener('click', async () => {
+RoomJoinBtn.addEventListener('click', () => {   // RoomJoin 클릭시 발생하는 이벤트
+    let data = {
+        "eventOp":"RoomJoin",
+        "roomId": roomIdInput.value
+    }
+
+    sendData(data);
+});
+
+SDPBtn.addEventListener('click', async () => {  // SDP클릭시 발생하는 이벤트
 
     let sdp = await createSDPOffer(userId);
 
@@ -181,6 +192,98 @@ SDPBtn.addEventListener('click', async () => {
 
 
 
+/********************** event receive **********************/
+clientIo.on("knowledgetalk", async data => {
+
+    socketLog('receive', data);
+
+    switch(data.eventOp || data.signalOp) {
+        case 'CreateRoom':
+            if(data.code == '200'){ // 200 (정상)
+                createRoom(data);   // createRoom함수 실행후
+                CreateRoomBtn.disabled = true;  // 재클릭방지
+            }
+            break;
+
+        case 'RoomJoin':
+            if(data.code == '200'){ 
+                roomJoin(data);
+                RoomJoinBtn.disabled = true;
+                CreateRoomBtn.disabled = true;
+            }
+            break;
+
+        case 'StartSession':
+            startSession(data);
+            break;
+
+        case 'SDP':
+            if(data.useMediaSvr == 'Y'){
+                if(data.sdp && data.sdp.type == 'offer'){
+                    createSDPAnswer(data);
+                }
+                else if(data.sdp && data.sdp.type == 'answer'){
+                    peers[userId].setRemoteDescription(new RTCSessionDescription(data.sdp));
+                }
+            }
+            break;
+        case 'ReceiveFeed':
+            receiveFeed(data)
+            break;
+
+        case 'Presence':
+            if(data.action == 'exit'){
+                leaveParticipant(data.userId)
+            }
+            break;
+
+    }
+
+});
 
 
+const createRoom = data => {
+    roomIdInput.value = data.roomId;
 
+    //room id copy to clipboard
+    roomIdInput.select();
+    roomIdInput.setSelectionRange(0, 99999);
+    document.execCommand("copy");
+
+    alert('room id copied')
+}
+
+const roomJoin = data => {
+    userId = data.userId;
+}
+
+const startSession = async data => {
+    members = Object.keys(data.members);
+
+    //3명 이상일 때, 다자간 통화 연결 시작
+    if(data.useMediaSvr == 'Y'){
+        for(let i=0; i<members.length; ++i){
+            let user = document.getElementById(members[i]);
+            if(!user){
+                createVideoBox(members[i]);
+            }
+        }
+
+        SDPBtn.disabled = false;
+        host = data.host;
+    }
+}
+
+const receiveFeed = (data) => {
+    data.feeds.forEach(result => {
+        let data = {
+            "eventOp":"SendFeed",
+            "roomId": roomIdInput.value,
+            "usage": "cam",
+            "feedId": result.id,
+            "display": result.display
+        }
+
+        sendData(data);
+    })
+}
