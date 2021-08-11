@@ -93,7 +93,7 @@ const createSDPOffer = async id => {
             peers[id].addTrack(track, streams[id]);
         });
 
-        peers[id].createOffer().then(sdp => {                                                 // createOffer를 통해 수신자에게 전달할 SDP를 생성한다.
+        peers[id].createOffer().then(sdp => {                                                 // createOffer를 통해 수신자에게 전달할 SDP를 생성한다. 요청자 스스로의 정보를 저장.
             peers[id].setLocalDescription(sdp); //연결 인터페이스와 관련이 있는 로컬 설명 (local description)을 변경.로컬 설명은 미디어 형식을 포함하는 연결의 로컬 엔드에 대한 속성을 명시
             return sdp;
         }).then(sdp => {
@@ -103,21 +103,20 @@ const createSDPOffer = async id => {
 }
 
 // send SDP answer
-//## RTCPeerConnection객체를 생성하여 스트림을 생성함. 
+//## RTCPeerConnection객체를 생성하여 스트림을 생성함. 상대방이 SDP 버튼 클릭시 실행 되는 메서드.
 const createSDPAnswer = async data => {
     let displayId = data.displayId;
 
     peers[displayId] = new RTCPeerConnection(); // 로컬기기와 원격 피어간의 WebRTC 연결을 담당, 원격 피어에 연결하기 위한 메서드 제공
     peers[displayId].ontrack = e => {
         streams[displayId] = e.streams[0];
-
         let multiVideo = document.getElementById(`multiVideo-${displayId}`);
         multiVideo.srcObject = streams[displayId];
     }
 
-    await peers[displayId].setRemoteDescription(data.sdp);
+    await peers[displayId].setRemoteDescription(data.sdp);  // 상대방의 정보를 저장.
     let answerSdp = await peers[displayId].createAnswer();
-    await peers[displayId].setLocalDescription(answerSdp);
+    await peers[displayId].setLocalDescription(answerSdp);  // 자신의 정보를 저장.
   
     peers[displayId].onicecandidate = e => {     
         if(!e.candidate){
