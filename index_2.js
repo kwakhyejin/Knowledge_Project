@@ -15,6 +15,7 @@ const AUTHKEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoidGVzdHNlcnZpY2
 let members;
 let roomId;
 let userId;
+let remoteId;
 let host;
 
 let peers = {};
@@ -109,7 +110,7 @@ const createSDPOffer = async id => {
 // Promise 객체는 자바스크립트 비동기 처리를 위한 객체
 // async...await : 비동기처리패턴 HTTP 통신을 하는 비동기 처리 코드 앞에 await을 붙인다.(비동기처리메서드는 꼭 프로미스객체를 반환해야함.)
 const createSDPAnswer = async data => {
-    let displayId = 'remote';
+    let displayId = data.userId;
     peers[displayId] = new RTCPeerConnection(); // 로컬기기와 원격 피어간의 WebRTC 연결을 담당, 원격 피어에 연결하기 위한 메서드 제공
     peers[displayId].ontrack = e => {
         streams[displayId] = e.streams[0];
@@ -117,6 +118,15 @@ const createSDPAnswer = async data => {
         let multiVideo = document.getElementById(`multiVideo-${displayId}`);
         multiVideo.srcObject = streams[displayId];
     }
+
+    // 내 영상 화면에 출력하고 피어에 담기
+    streams[userId] = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
+    let str = 'multiVideo-'+userId;
+    let multiVideo = document.getElementById(str);
+    multiVideo.srcObject = streams[userId];
+    streams[userId].getTracks().forEach(track => {
+        peers[displayId].addTrack(track, streams[userId]);
+    });
 
     await peers[displayId].setRemoteDescription(data.sdp);
     let answerSdp = await peers[displayId].createAnswer();
@@ -132,10 +142,8 @@ const createSDPAnswer = async data => {
                 "sdp": peers[displayId].localDescription,
                 "roomId": data.roomId,
                 "usage": "cam",
-                // "pluginId": data.pluginId,
                 "userId": userId
             };
-
             sendData(reqData);  // 데이터 전송
         }
     }
@@ -192,7 +200,6 @@ SDPBtn.addEventListener('click', async () => {  // SDP클릭시 발생하는 이
         "usage": "cam",
         "userId": userId,
         "host": host
-        
     }
 
     sendData(data);
@@ -218,6 +225,19 @@ clientIo.on("knowledgetalk", async data => {
                 roomJoin(data);
                 RoomJoinBtn.disabled = true;
                 CreateRoomBtn.disabled = true;
+                if(data.members){
+                    members = Object.keys(data.members);
+
+                    for(let i=0; i<members.length; ++i){
+                        let user = document.getElementById(members[i]);
+                        if(!user){
+                            createVideoBox(members[i]);
+                        }
+
+                        if(members[i] !== userId) remoteId = members[i];
+                    }
+                    if(members.length<2)    SDPBtn.disabled = false;
+                }
             }
             break;
 
@@ -228,10 +248,10 @@ clientIo.on("knowledgetalk", async data => {
         case 'SDP':
             if(data.useMediaSvr == 'N'){   
                 if(data.sdp && data.sdp.type == 'offer'){   // 자기 자신
-                    createSDPAnswer(data);  //내 화면 생성
+                   await createSDPAnswer(data);  //내 화면 생성
                 }
                 else if(data.sdp && data.sdp.type == 'answer'){
-                    peers[userId].setRemoteDescription(new RTCSessionDescription(data.sdp));
+                    await peers[userId].setRemoteDescription(new RTCSessionDescription(data.sdp));
                 }
             }
             break;
@@ -276,7 +296,7 @@ const startSession = async data => {
             if(!user){
                 createVideoBox(members[i]);
             }
-            
+            if(members[i] !== userId) remoteId = members[i];
         }
 
         SDPBtn.disabled = false;
@@ -293,7 +313,7 @@ const receiveFeed = (data) => {
             "feedId": result.id,
             "display": result.display
         }
-        SDPBtn.disabled = false;
+        //SDPBtn.disabled = false;
 
         sendData(data);
     })
