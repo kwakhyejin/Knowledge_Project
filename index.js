@@ -80,11 +80,11 @@ const createVideoBox = id => {
     videoContainner.appendChild(multiVideo);
 
     videoBox.appendChild(videoContainner);
+
 }
 
 // Local stream, peer 생성 및 SDP RETURN
 const createSDPOffer = async id => {
-    console.log(">>>>>Offer");
     return new Promise(async (resolve, reject) => { // Promise객체는 비동기작업후에 완료 or 실패와 그 결과값을 나타냄.
         peers[id] = new RTCPeerConnection();
         streams[id] = await navigator.mediaDevices.getUserMedia({video: true, audio: true});  // 오디오 비디오 둘다 요청
@@ -109,9 +109,7 @@ const createSDPOffer = async id => {
 // Promise 객체는 자바스크립트 비동기 처리를 위한 객체
 // async...await : 비동기처리패턴 HTTP 통신을 하는 비동기 처리 코드 앞에 await을 붙인다.(비동기처리메서드는 꼭 프로미스객체를 반환해야함.)
 const createSDPAnswer = async data => {
-    console.log(">>>>>Answer");
-    let displayId = data.displayId;
-
+    let displayId = 'remote';
     peers[displayId] = new RTCPeerConnection(); // 로컬기기와 원격 피어간의 WebRTC 연결을 담당, 원격 피어에 연결하기 위한 메서드 제공
     peers[displayId].ontrack = e => {
         streams[displayId] = e.streams[0];
@@ -134,7 +132,7 @@ const createSDPAnswer = async data => {
                 "sdp": peers[displayId].localDescription,
                 "roomId": data.roomId,
                 "usage": "cam",
-                "pluginId": data.pluginId,
+                // "pluginId": data.pluginId,
                 "userId": userId
             };
 
@@ -228,7 +226,7 @@ clientIo.on("knowledgetalk", async data => {
             break;
 
         case 'SDP':
-            if(data.useMediaSvr == 'Y'){   
+            if(data.useMediaSvr == 'N'){   
                 if(data.sdp && data.sdp.type == 'offer'){   // 자기 자신
                     createSDPAnswer(data);  //내 화면 생성
                 }
@@ -271,8 +269,8 @@ const roomJoin = data => {
 const startSession = async data => {
     // 방장 이외의 유저가 들어오면 실행됨.
     members = Object.keys(data.members);    //Object.keys() : members 이름들을 반복문과 동일한 순서로 순회해서 배열로 반환
-
-    if(data.useMediaSvr == 'Y'){    
+    
+    if(data.useMediaSvr == 'N'){    
         for(let i=0; i<members.length; ++i){
             let user = document.getElementById(members[i]);
             if(!user){
