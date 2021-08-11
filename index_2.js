@@ -131,10 +131,10 @@ const createSDPAnswer = async data => {
         peers[displayId].addTrack(track, streams[userId]);
     });
 
-    await peers[displayId].setRemoteDescription(data.sdp);//////////////////////////////////////////////////////////
-    let answerSdp = await peers[displayId].createAnswer();// WebRTC연결중 발생하는 offer에 대한 answer를 생성함.
-    await peers[displayId].setLocalDescription(answerSdp);//////////////////////////////////////////////////////////
-
+    await peers[displayId].setRemoteDescription(data.sdp);  // 상대방의 정보를 저장.
+    let answerSdp = await peers[displayId].createAnswer();
+    let answerSdp = await peers[displayId].createAnswer();  // WebRTC연결중 발생하는 offer에 대한 answer를 생성함.
+    await peers[displayId].setLocalDescription(answerSdp);  // 자신의 정보를 저장.
     peers[displayId].onicecandidate = e => {     
         if(!e.candidate){
             let reqData = {
