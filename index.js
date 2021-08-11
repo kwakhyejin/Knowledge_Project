@@ -248,7 +248,7 @@ clientIo.on("knowledgetalk", async data => {
 
     }
 
-});
+}); 
 
 
 const createRoom = data => {
