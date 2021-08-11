@@ -102,6 +102,14 @@ const createSDPOffer = async id => {
         }).then(sdp => {
             resolve(sdp);
         })
+
+        //상대방 영상 가져와서 화면에 출력
+        peers[id].ontrack = e => {
+            streams[remoteId] = e.streams[0];
+            
+            let multiVideo = document.getElementById(`multiVideo-${remoteId}`);
+            multiVideo.srcObject = streams[remoteId];
+        } 
     })
 }
 
@@ -211,8 +219,12 @@ SDPBtn.addEventListener('click', async () => {  // SDP클릭시 발생하는 이
 clientIo.on("knowledgetalk", async data => {
 
     socketLog('receive', data);
+    console.log("eventOp :"+data.eventOp+" / "+"signalOp :"+data.signalOp);
+
+
 
     switch(data.eventOp || data.signalOp) {
+
         case 'CreateRoom':
             if(data.code == '200'){ // 200 (정상)
                 createRoom(data);   // createRoom함수 실행후
@@ -225,15 +237,14 @@ clientIo.on("knowledgetalk", async data => {
                 roomJoin(data);
                 RoomJoinBtn.disabled = true;
                 CreateRoomBtn.disabled = true;
+                // roomJoin에서 data.members를 확인함.
                 if(data.members){
-                    members = Object.keys(data.members);
-
-                    for(let i=0; i<members.length; ++i){
-                        let user = document.getElementById(members[i]);
+                    members = Object.keys(data.members); // data.userId를 가져옴
+                    for(let i=0; i<members.length; ++i){    // members.length == 2
+                        let user = document.getElementById(members[i]); // div class="multi-video"를 가져옴. 없으면 생성
                         if(!user){
                             createVideoBox(members[i]);
                         }
-
                         if(members[i] !== userId) remoteId = members[i];
                     }
                     if(members.length<2)    SDPBtn.disabled = false;
@@ -250,7 +261,7 @@ clientIo.on("knowledgetalk", async data => {
                 if(data.sdp && data.sdp.type == 'offer'){   // 자기 자신
                    await createSDPAnswer(data);  //내 화면 생성
                 }
-                else if(data.sdp && data.sdp.type == 'answer'){
+                else if(data.sdp && data.sdp.type == 'answer'){ // 상대방 허용후 응답받음
                     await peers[userId].setRemoteDescription(new RTCSessionDescription(data.sdp));
                 }
             }
@@ -270,18 +281,22 @@ clientIo.on("knowledgetalk", async data => {
 });
 
 
+/*
+data안에 roomId를 가져옴
+*/
 const createRoom = data => {
-    roomIdInput.value = data.roomId;
-
+//console.log(data);  {eventOp: 'CreateRoom', code: '200', message: 'OK', roomId: '14197589'}
+    roomIdInput.value = data.roomId;    // 방번호 배정
     //room id copy to clipboard
     roomIdInput.select();
-    roomIdInput.setSelectionRange(0, 99999);
-    document.execCommand("copy");
+    roomIdInput.setSelectionRange(0, 99999);    //setSelectionRange : 0~99999 범위 선택
+    document.execCommand("copy");   // 텍스트 드래그 할떄 파란 박스 영역에 대하여 execCommand('copy') : 복사, execCommand('cut') : 잘라내기 등등 사용
 
     alert('room id copied')
 }
 
 const roomJoin = data => {
+ //   console.log(data);
     userId = data.userId;
 
 }
