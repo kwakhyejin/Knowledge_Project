@@ -62,7 +62,7 @@ const sendData = data => {
 //     }
 // }
 
-//영상 출력 화면 Box 생성
+// 영상 출력 화면 Box 생성
 // let은 변수에 재할당이 가능하지만 const는 변수재선언,재할당 모두 불가능
 const createVideoBox = id => {
     let videoContainner = document.createElement("div");
@@ -86,18 +86,19 @@ const createVideoBox = id => {
 
 // Local stream, peer 생성 및 SDP RETURN
 const createSDPOffer = async id => {
-    return new Promise(async (resolve, reject) => { // Promise객체는 비동기작업후에 완료 or 실패와 그 결과값을 나타냄.
+    return new Promise(async (resolve, reject) => {   // Promise객체는 비동기작업후에 완료 or 실패와 그 결과값을 나타냄.
         peers[id] = new RTCPeerConnection();
         streams[id] = await navigator.mediaDevices.getUserMedia({video: true, audio: true});  // 오디오 비디오 둘다 요청
         let str = 'multiVideo-'+id;
         let multiVideo = document.getElementById(str);
-        multiVideo.srcObject = streams[id]; // 비디오요소에서 srcObeject 속성을 사용해 스트림을 가져옴
-        streams[id].getTracks().forEach(track => {  // getTracks()를 사용해서 스트림의 트랙 목록을 가져오고  forEach를 이용하여 addTrack한다.
+        multiVideo.srcObject = streams[id];           // 비디오요소에서 srcObeject 속성을 사용해 스트림을 가져옴
+        streams[id].getTracks().forEach(track => {    // getTracks()를 사용해서 스트림의 트랙 목록을 가져오고  forEach를 이용하여 addTrack한다.
             peers[id].addTrack(track, streams[id]);
         });
 
-        peers[id].createOffer().then(sdp => {   // createOffer를 통해 수신자에게 전달할 SDP를 생성한다.
-            peers[id].setLocalDescription(sdp); //연결 인터페이스와 관련이 있는 로컬 설명 (local description)을 변경.로컬 설명은 미디어 형식을 포함하는 연결의 로컬 엔드에 대한 속성을 명시
+        peers[id].createOffer().then(sdp => {         // createOffer를 통해 수신자에게 전달할 SDP를 생성한다.
+            peers[id].setLocalDescription(sdp);        /* 연결 인터페이스와 관련이 있는 로컬 설명 (local description)을 변경.
+                                                          로컬 설명은 미디어 형식을 포함하는 연결의 로컬 엔드에 대한 속성을 명시*/
             return sdp;
         }).then(sdp => {
             resolve(sdp);
@@ -113,16 +114,11 @@ const createSDPOffer = async id => {
     })
 }
 
-// send SDP answer
-// SDP : SDP란 Session Description Protocol 의 약자로 연결하고자 하는 Peer 서로간의 미디어와 네트워크에 관한 정보를 이해하기 위해 사용
-// Promise 객체는 자바스크립트 비동기 처리를 위한 객체
-// async...await : 비동기처리패턴 HTTP 통신을 하는 비동기 처리 코드 앞에 await을 붙인다.(비동기처리메서드는 꼭 프로미스객체를 반환해야함.)
 const createSDPAnswer = async data => {
     let displayId = data.userId;
-    peers[displayId] = new RTCPeerConnection(); // 로컬기기와 원격 피어간의 WebRTC 연결을 담당, 원격 피어에 연결하기 위한 메서드 제공
-    peers[displayId].ontrack = e => {
-        streams[displayId] = e.streams[0];
-
+    peers[displayId] = new RTCPeerConnection();
+    peers[displayId].ontrack = e => {                   // RTCPeerConnection 속성인 ontrack은 RTCPeerConnection객체에 트랙이 등록됨을 알려주는 이벤트 핸들러.
+        streams[displayId] = e.streams[0];              // MediaStream 객체
         let multiVideo = document.getElementById(`multiVideo-${displayId}`);
         multiVideo.srcObject = streams[displayId];
     }
@@ -132,17 +128,14 @@ const createSDPAnswer = async data => {
     let str = 'multiVideo-'+userId;
     let multiVideo = document.getElementById(str);
     multiVideo.srcObject = streams[userId];
-    streams[userId].getTracks().forEach(track => {
+    streams[userId].getTracks().forEach(track => {       //스트림의 트랙 목록을 가져와, 각트랙의 addTrack()메서드 호출(addTrack() : 다른 유저에게 전송될 신규 미디어 트랙을 추가함.)
         peers[displayId].addTrack(track, streams[userId]);
     });
 
-    await peers[displayId].setRemoteDescription(data.sdp);
-    let answerSdp = await peers[displayId].createAnswer();
-    await peers[displayId].setLocalDescription(answerSdp);
-    /* ICE(두 피어를 연결하기 위해 WebRTC에서 사용하는 프레임워크) 이 프로토콜을 사용하면 두 피어가 NAT를 사용하여 
-     해당 로컬 네트워크의 다른 장치와 글로벌 IP주소를 공유할수 있는 경우에도 서로를 찾고 연결 설정 할수 있음.
-     onicecandidate 는  RTCPeerConnection인스턴스에서 icecandidate이벤트 발생시에 호출하려는 함수를 지정합니다. 
-     이 이벤트는  ICE (en-US) 신호를 전달하는 서버를 철저하게 관리*/
+    await peers[displayId].setRemoteDescription(data.sdp);//////////////////////////////////////////////////////////
+    let answerSdp = await peers[displayId].createAnswer();// WebRTC연결중 발생하는 offer에 대한 answer를 생성함.
+    await peers[displayId].setLocalDescription(answerSdp);//////////////////////////////////////////////////////////
+
     peers[displayId].onicecandidate = e => {     
         if(!e.candidate){
             let reqData = {
@@ -152,7 +145,7 @@ const createSDPAnswer = async data => {
                 "usage": "cam",
                 "userId": userId
             };
-            sendData(reqData);  // 데이터 전송
+            sendData(reqData);
         }
     }
 }
@@ -178,10 +171,10 @@ const leaveParticipant = id => {
 }
 
 /********************** button event **********************/
-CreateRoomBtn.addEventListener('click', () => { //createRoom클릭시 발생하는 이벤트
+CreateRoomBtn.addEventListener('click', () => {
     host = true;
     let data = {
-        "eventOp":"CreateRoom"  // Call 이벤트 처리 명령어
+        "eventOp":"CreateRoom"                  // Call 이벤트 처리 명령어
     }
 
     sendData(data);
@@ -190,7 +183,7 @@ CreateRoomBtn.addEventListener('click', () => { //createRoom클릭시 발생하�
 RoomJoinBtn.addEventListener('click', () => {   // RoomJoin 클릭시 발생하는 이벤트
     let data = {
         "eventOp":"RoomJoin",
-        "roomId": roomIdInput.value     // 방의 value도 전달
+        "roomId": roomIdInput.value
     }
 
     sendData(data);
@@ -219,35 +212,32 @@ SDPBtn.addEventListener('click', async () => {  // SDP클릭시 발생하는 이
 clientIo.on("knowledgetalk", async data => {
 
     socketLog('receive', data);
-    console.log("eventOp :"+data.eventOp+" / "+"signalOp :"+data.signalOp);
-
-
-
+    
     switch(data.eventOp || data.signalOp) {
 
         case 'CreateRoom':
-            if(data.code == '200'){ // 200 (정상)
-                createRoom(data);   // createRoom함수 실행후
-                CreateRoomBtn.disabled = true;  // 재클릭방지
+            if(data.code == '200'){                                     // 200 (정상)
+                createRoom(data);
+                CreateRoomBtn.disabled = true;
             }
             break;
 
         case 'RoomJoin':
             if(data.code == '200'){ 
                 roomJoin(data);
+
                 RoomJoinBtn.disabled = true;
                 CreateRoomBtn.disabled = true;
-                // roomJoin에서 data.members를 확인함.
                 if(data.members){
-                    members = Object.keys(data.members); // data.userId를 가져옴
-                    for(let i=0; i<members.length; ++i){    // members.length == 2
+                    members = Object.keys(data.members);                // data.userId를 가져옴
+                    for(let i=0; i<members.length; ++i){
                         let user = document.getElementById(members[i]); // div class="multi-video"를 가져옴. 없으면 생성
                         if(!user){
                             createVideoBox(members[i]);
                         }
                         if(members[i] !== userId) remoteId = members[i];
                     }
-                    if(members.length<2)    SDPBtn.disabled = false;
+                    if(members.length<=2)    SDPBtn.disabled = false;
                 }
             }
             break;
@@ -258,10 +248,10 @@ clientIo.on("knowledgetalk", async data => {
 
         case 'SDP':
             if(data.useMediaSvr == 'N'){   
-                if(data.sdp && data.sdp.type == 'offer'){   // 자기 자신
-                   await createSDPAnswer(data);  //내 화면 생성
+                if(data.sdp && data.sdp.type == 'offer'){                 // 요청자..?
+                   await createSDPAnswer(data);
                 }
-                else if(data.sdp && data.sdp.type == 'answer'){ // 상대방 허용후 응답받음
+                else if(data.sdp && data.sdp.type == 'answer'){            // 상대방 허용후 응답받음
                     await peers[userId].setRemoteDescription(new RTCSessionDescription(data.sdp));
                 }
             }
@@ -286,11 +276,11 @@ data안에 roomId를 가져옴
 */
 const createRoom = data => {
 //console.log(data);  {eventOp: 'CreateRoom', code: '200', message: 'OK', roomId: '14197589'}
-    roomIdInput.value = data.roomId;    // 방번호 배정
+    roomIdInput.value = data.roomId;            // 방번호 배정
     //room id copy to clipboard
     roomIdInput.select();
     roomIdInput.setSelectionRange(0, 99999);    //setSelectionRange : 0~99999 범위 선택
-    document.execCommand("copy");   // 텍스트 드래그 할떄 파란 박스 영역에 대하여 execCommand('copy') : 복사, execCommand('cut') : 잘라내기 등등 사용
+    document.execCommand("copy");               // 텍스트 드래그 할떄 파란 박스 영역에 대하여 execCommand('copy') : 복사, execCommand('cut') : 잘라내기 등등 사용
 
     alert('room id copied')
 }
@@ -301,10 +291,8 @@ const roomJoin = data => {
 
 }
 
-const startSession = async data => {
-    // 방장 이외의 유저가 들어오면 실행됨.
+const startSession = async data => {        // 다른 유저가 들어오면 startSession 실행됨. 유저의 비디오박스를 생성함.
     members = Object.keys(data.members);    //Object.keys() : members 이름들을 반복문과 동일한 순서로 순회해서 배열로 반환
-    
     if(data.useMediaSvr == 'N'){    
         for(let i=0; i<members.length; ++i){
             let user = document.getElementById(members[i]);
@@ -315,11 +303,12 @@ const startSession = async data => {
         }
 
         SDPBtn.disabled = false;
-        host = data.host;
-    }
+        host = data.host;                   /////////////////////////////////////
+     }
 }
 
 const receiveFeed = (data) => {
+
     data.feeds.forEach(result => {
         let data = {
             "eventOp":"SendFeed",

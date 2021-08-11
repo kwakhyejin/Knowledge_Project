@@ -62,7 +62,6 @@ const sendData = data => {
 // }
 
 //영상 출력 화면 Box 생성
-// let은 변수에 재할당이 가능하지만 const는 변수재선언,재할당 모두 불가능
 const createVideoBox = id => {
     let videoContainner = document.createElement("div");
     videoContainner.classList = "multi-video";
@@ -82,19 +81,19 @@ const createVideoBox = id => {
     videoBox.appendChild(videoContainner);
 }
 
-// Local stream, peer 생성 및 SDP RETURN
+//## RTCPeerConnection객체를 생성하여 스트림을 생성하여 스트림의 목록을 가져옴. 수신자에게 전달한 SDP를 생성한여 RETURN함.
 const createSDPOffer = async id => {
-    return new Promise(async (resolve, reject) => { // Promise객체는 비동기작업후에 완료 or 실패와 그 결과값을 나타냄.
+    return new Promise(async (resolve, reject) => {                                           // Promise객체는 비동기작업후에 완료 or 실패와 그 결과값을 나타냄.
         peers[id] = new RTCPeerConnection();
         streams[id] = await navigator.mediaDevices.getUserMedia({video: true, audio: true});  // 오디오 비디오 둘다 요청
         let str = 'multiVideo-'+id;
         let multiVideo = document.getElementById(str);
-        multiVideo.srcObject = streams[id]; // 비디오요소에서 srcObeject 속성을 사용해 스트림을 가져옴
-        streams[id].getTracks().forEach(track => {  // getTracks()를 사용해서 스트림의 트랙 목록을 가져오고  forEach를 이용하여 addTrack한다.
+        multiVideo.srcObject = streams[id];                                                   // 비디오요소에서 srcObeject 속성을 사용해 스트림을 가져옴
+        streams[id].getTracks().forEach(track => {                                            // getTracks()를 사용해서 스트림의 트랙 목록을 가져오고  forEach를 이용하여 addTrack한다.
             peers[id].addTrack(track, streams[id]);
         });
 
-        peers[id].createOffer().then(sdp => {   // createOffer를 통해 수신자에게 전달할 SDP를 생성한다.
+        peers[id].createOffer().then(sdp => {                                                 // createOffer를 통해 수신자에게 전달할 SDP를 생성한다.
             peers[id].setLocalDescription(sdp); //연결 인터페이스와 관련이 있는 로컬 설명 (local description)을 변경.로컬 설명은 미디어 형식을 포함하는 연결의 로컬 엔드에 대한 속성을 명시
             return sdp;
         }).then(sdp => {
@@ -104,11 +103,8 @@ const createSDPOffer = async id => {
 }
 
 // send SDP answer
-// SDP : SDP란 Session Description Protocol 의 약자로 연결하고자 하는 Peer 서로간의 미디어와 네트워크에 관한 정보를 이해하기 위해 사용
-// Promise 객체는 자바스크립트 비동기 처리를 위한 객체
-// async...await : 비동기처리패턴 HTTP 통신을 하는 비동기 처리 코드 앞에 await을 붙인다.(비동기처리메서드는 꼭 프로미스객체를 반환해야함.)
+//## RTCPeerConnection객체를 생성하여 스트림을 생성함. 
 const createSDPAnswer = async data => {
-    console.log(">>>>>Answer");
     let displayId = data.displayId;
 
     peers[displayId] = new RTCPeerConnection(); // 로컬기기와 원격 피어간의 WebRTC 연결을 담당, 원격 피어에 연결하기 위한 메서드 제공
@@ -122,10 +118,7 @@ const createSDPAnswer = async data => {
     await peers[displayId].setRemoteDescription(data.sdp);
     let answerSdp = await peers[displayId].createAnswer();
     await peers[displayId].setLocalDescription(answerSdp);
-    /* ICE(두 피어를 연결하기 위해 WebRTC에서 사용하는 프레임워크) 이 프로토콜을 사용하면 두 피어가 NAT를 사용하여 
-     해당 로컬 네트워크의 다른 장치와 글로벌 IP주소를 공유할수 있는 경우에도 서로를 찾고 연결 설정 할수 있음.
-     onicecandidate 는  RTCPeerConnection인스턴스에서 icecandidate이벤트 발생시에 호출하려는 함수를 지정합니다. 
-     이 이벤트는  ICE (en-US) 신호를 전달하는 서버를 철저하게 관리*/
+  
     peers[displayId].onicecandidate = e => {     
         if(!e.candidate){
             let reqData = {
