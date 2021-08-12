@@ -107,6 +107,7 @@ const createSDPOffer = async id => {
         //상대방 영상 가져와서 화면에 출력
         peers[id].ontrack = e => {
             streams[remoteId] = e.streams[0];
+            console.log("remoteId"+remoteId);
             let multiVideo = document.getElementById(`multiVideo-${remoteId}`);
             multiVideo.srcObject = streams[remoteId];
         } 
