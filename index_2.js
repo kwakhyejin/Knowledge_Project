@@ -132,9 +132,9 @@ const createSDPAnswer = async data => {
     });
 
     await peers[displayId].setRemoteDescription(data.sdp);  // 상대방의 정보를 저장.
-    let answerSdp = await peers[displayId].createAnswer();
     let answerSdp = await peers[displayId].createAnswer();  // WebRTC연결중 발생하는 offer에 대한 answer를 생성함.
     await peers[displayId].setLocalDescription(answerSdp);  // 자신의 정보를 저장.
+
     peers[displayId].onicecandidate = e => {     
         if(!e.candidate){
             let reqData = {
@@ -247,10 +247,10 @@ clientIo.on("knowledgetalk", async data => {
 
         case 'SDP':
             if(data.useMediaSvr == 'N'){   
-                if(data.sdp && data.sdp.type == 'offer'){                 // 요청자..?
+                if(data.sdp && data.sdp.type == 'offer'){
                    await createSDPAnswer(data);
                 }
-                else if(data.sdp && data.sdp.type == 'answer'){            // 상대방 허용후 응답받음
+                else if(data.sdp && data.sdp.type == 'answer'){            // 상대방의 정보를 저장. 상대방이 화상을 요청했을때 실행됨.
                     await peers[userId].setRemoteDescription(new RTCSessionDescription(data.sdp));
                 }
             }
