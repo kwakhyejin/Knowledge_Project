@@ -1,4 +1,7 @@
+
+
 # WebRTC에 대하여
+
 1. WebRTC란?
     - WebRTC(Web Real-Time Communications)란, 웹 어플리케이션(최근에는 android 및 ios도 지원) 및 사이트들이 별도의 소프트웨어 없이
     음성, 영상 미디어 혹은 텍스트, 파일 같은 데이터를 브라우저끼리 주고 받을 수 있게 만든 기술이다. 
